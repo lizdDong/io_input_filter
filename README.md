@@ -1,4 +1,4 @@
-# io_input_filter IO输入滤波软件包。测试
+# io_input_filter IO输入滤波软件包
 
 ## 1 介绍
 
