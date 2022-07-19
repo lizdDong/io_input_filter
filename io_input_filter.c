@@ -22,14 +22,14 @@ static void _iif_period_task(void *parameter);
 
 
 #ifdef RT_USING_HEAP
-io_input_filter_t iif_register(rt_base_t pin)
+io_input_filter_t iif_create(rt_base_t pin)
 {
     io_input_filter_t iif;
 
     iif = rt_malloc(sizeof(struct io_input_filter));
     if (iif == RT_NULL)
     {
-        LOG_E("iif_register() failed: no free memory was found!");
+        LOG_E("iif_create() failed: no free memory was found!");
         return RT_NULL;
     }
 

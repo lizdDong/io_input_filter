@@ -7,7 +7,7 @@
 ## 2 使用方法
 
 ### 2.1 配置宏
-	IIF_TIMES   // 滤波次数，连续 IIF_TIMES 次引脚电平持续为高/低的次数
+	IIF_TIMES   // 滤波次数，连续 IIF_TIMES 次读取引脚电平持续为高/低的次数
 	IIF_PERIOD  // 滤波周期，每隔 IIF_PERIOD 毫秒读取一次引脚电平
 
 ### 2.2 接口说明
@@ -24,7 +24,7 @@ struct io_input_filter
 typedef struct io_input_filter *io_input_filter_t;
 ```
 #### 2.2.2 函数说明：
-1. `io_input_filter_t iif_register(rt_base_t pin);`
+1. `io_input_filter_t iif_create(rt_base_t pin);`
 在堆中申请一段内存注册滤波器，并初始化数据内容。
 
 2. `rt_err_t iif_init(io_input_filter_t iif, rt_base_t pin);`
@@ -47,9 +47,9 @@ struct io_input_filter g_input_5;
 void iif_example(void *para)
 {
     // Created in the heap
-    g_input_1 = iif_register(GET_PIN(B, 0));
-    g_input_2 = iif_register(GET_PIN(B, 1));
-    g_input_3 = iif_register(GET_PIN(B, 2));
+    g_input_1 = iif_create(GET_PIN(B, 0));
+    g_input_2 = iif_create(GET_PIN(B, 1));
+    g_input_3 = iif_create(GET_PIN(B, 2));
 
     // Created using static variables
     iif_init(&g_input_4, GET_PIN(D, 10));
