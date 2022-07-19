@@ -8,7 +8,8 @@ src = Split('''
 io_input_filter.c
 ''')
 
-# src += ['io_input_filter_example.c']
+if GetDepend(['IIF_EXAMPLE']):
+    src += ['io_input_filter_example.c']
 
 path = [cwd]
 
