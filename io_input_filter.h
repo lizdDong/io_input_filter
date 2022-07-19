@@ -35,7 +35,7 @@ struct io_input_filter
 typedef struct io_input_filter *io_input_filter_t;
 
 
-io_input_filter_t iif_register(rt_base_t pin);
+io_input_filter_t iif_create(rt_base_t pin);
 rt_err_t iif_init(io_input_filter_t iif, rt_base_t pin);
 uint8_t iif_read(struct io_input_filter *iif);
 
