@@ -82,7 +82,7 @@ static rt_err_t _iif_initialize(io_input_filter_t iif, rt_base_t pin)
     if(s_iif_timer == RT_NULL)
     {
         s_iif_timer = rt_timer_create("iif task", _iif_period_task,
-                            RT_NULL, IIF_PERIOD, RT_TIMER_FLAG_PERIODIC);
+                            RT_NULL, IIF_PERIOD, RT_TIMER_FLAG_PERIODIC | RT_TIMER_FLAG_SOFT_TIMER);
         if(s_iif_timer != RT_NULL)
         {
             rt_timer_start(s_iif_timer);
@@ -111,7 +111,7 @@ static void io_input_filter_poll(void)
 
     for(list = s_iif_head; list != NULL; list = list->next)
     {
-        // IO处于低电平状态
+        // When IO is low
         if(rt_pin_read(list->pin_id) == PIN_LOW)
         {
             if(list->pin_status == PIN_HIGH)
