@@ -8,59 +8,48 @@
  * 2022-07-05     lizd       the first version
  */
 
+#include <rtthread.h>
 #include "io_input_filter.h"
 
 
-io_input_filter_t g_input_1 = RT_NULL;
-io_input_filter_t g_input_2 = RT_NULL;
-io_input_filter_t g_input_3 = RT_NULL;
+#define IO_IN1  GET_PIN(D, 11)
+#define IO_IN2  GET_PIN(D, 12)
+#define IO_IN3  GET_PIN(D, 13)
+#define IO_IN4  GET_PIN(D, 14)
 
-struct io_input_filter g_input_4;
-struct io_input_filter g_input_5;
-
-void iif_example(void *para)
+int iif_example(void)
 {
-    // Created in the heap
-    g_input_1 = iif_register(GET_PIN(B, 0));
-    g_input_2 = iif_register(GET_PIN(B, 1));
-    g_input_3 = iif_register(GET_PIN(B, 2));
+    iif_init();
 
-    // Created using static variables
-    iif_init(&g_input_4, GET_PIN(D, 10));
-    iif_init(&g_input_5, GET_PIN(D, 11));
+    iif_add_pin(IO_IN1);
+    iif_add_pin(IO_IN2);
+    iif_add_pin(IO_IN3);
+    iif_add_pin(IO_IN4);
 
-    while(1)
+    while (1)
     {
-        if(iif_read(g_input_1) == 1)
-        {
-            rt_kprintf("input_1 status: High\n");
-        }
+        if(iif_read_pin(IO_IN1) == PIN_HIGH)
+            rt_kprintf("IO_IN1 Changed to HIGH\n");
+        else
+            rt_kprintf("IO_IN1 Changed to LOW\n");
 
-        if(iif_read(g_input_2) == 1)
-        {
-            rt_kprintf("input_2 status: High\n");
-        }
+        if(iif_read_pin(IO_IN2) == PIN_HIGH)
+            rt_kprintf("IO_IN2 Changed to HIGH\n");
+        else
+            rt_kprintf("IO_IN2 Changed to LOW\n");
 
-        if(iif_read(g_input_3) == 1)
-        {
-            rt_kprintf("input_3 status: High\n");
-        }
+        if(iif_read_pin(IO_IN3) == PIN_HIGH)
+            rt_kprintf("IO_IN3 Changed to HIGH\n");
+        else
+            rt_kprintf("IO_IN3 Changed to LOW\n");
 
-        if(iif_read(&g_input_4) == 1)
-        {
-            rt_kprintf("input_4 status: High\n");
-        }
+        if(iif_read_pin(IO_IN4) == PIN_HIGH)
+            rt_kprintf("IO_IN4 Changed to HIGH\n");
+        else
+            rt_kprintf("IO_IN4 Changed to LOW\n");
 
-        if(iif_read(&g_input_5) == 1)
-        {
-            rt_kprintf("input_5 status: High\n");
-        }
-
-        rt_kprintf("\n");
         rt_thread_mdelay(100);
     }
+
+    return RT_EOK;
 }
-
-MSH_CMD_EXPORT(iif_example, io input filter example);
-
-

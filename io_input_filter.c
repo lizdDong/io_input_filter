@@ -11,152 +11,139 @@
 #include "io_input_filter.h"
 
 #define DBG_TAG "iif"
-#define DBG_LVL DBG_INFO
+#define DBG_LVL DBG_LOG
 #include <rtdbg.h>
 
-static struct io_input_filter *s_iif_head = RT_NULL;
-static rt_timer_t s_iif_timer = RT_NULL;
+/* Input Filter Times */
+#ifndef IIF_TIMES
+#define IIF_TIMES     10
+#endif
 
-static rt_err_t _iif_initialize(io_input_filter_t iif, rt_base_t pin);
-static void _iif_period_task(void *parameter);
+/* Input Filter Period */
+#ifndef IIF_PERIOD
+#define IIF_PERIOD    5
+#endif
 
+#ifdef IIF_DEBUG_MODE
+#ifndef IIF_DEBUG
+#define IIF_DEBUG(...) rt_kprintf(__VA_ARGS__)
+#endif
+#else
+#define IIF_DEBUG(...)
+#endif
 
-#ifdef RT_USING_HEAP
-io_input_filter_t iif_create(rt_base_t pin)
+typedef struct io_input_filter
 {
-    io_input_filter_t iif;
+    uint8_t pin_id;
+    uint8_t pin_status;
+    uint8_t filter_counts;
+    struct io_input_filter *next;
+} iif_t;
 
-    iif = rt_malloc(sizeof(struct io_input_filter));
-    if (iif == RT_NULL)
+static iif_t iif;
+static rt_timer_t iif_timer;
+
+static void iif_list_append(iif_t *l, iif_t *n);
+static void iif_handle(void *parameter);
+
+void iif_init(void)
+{
+    iif.next = NULL;
+
+    iif_timer = rt_timer_create("iif_handle", iif_handle, RT_NULL, IIF_PERIOD,
+            RT_TIMER_FLAG_PERIODIC | RT_TIMER_FLAG_SOFT_TIMER);
+    rt_timer_start(iif_timer);
+}
+
+int iif_add_pin(rt_base_t pin)
+{
+    iif_t *iif_new;
+
+    iif_new = rt_malloc(sizeof(iif_t));
+    if (iif_new == RT_NULL)
     {
-        LOG_E("iif_create() failed: no free memory was found!");
-        return RT_NULL;
+        rt_kprintf("error: iif_add_pin() failed, no free memory was found!");
+        return -1;
     }
 
-    if(_iif_initialize(iif, pin) != RT_EOK)
-    {
-        return RT_NULL;
-    }
-
-    return iif;
-}
-#endif /* #endif RT_USING_HEAP */
-
-rt_err_t iif_init(io_input_filter_t iif, rt_base_t pin)
-{
-    return _iif_initialize(iif, pin);
-}
-
-static rt_err_t _iif_initialize(io_input_filter_t iif, rt_base_t pin)
-{
-    // Initialize iif structure, Must be initialized before appending list,
-    // Otherwise, May cause scheduled tasks to execute uninitialized parameters
-    iif->next = RT_NULL;
-    iif->pin_status = PIN_LOW;
-    iif->filter_counts = 0;
-    iif->pin_id = pin;
     rt_pin_mode(pin, PIN_MODE_INPUT);
+    iif_new->pin_id = pin;
+    iif_new->filter_counts = 0;
+    iif_new->pin_status = rt_pin_read(pin);
 
-    // Append to iif list
-    if(s_iif_head == RT_NULL)
-    {
-        s_iif_head = iif;
-        LOG_I("list head: 0x%08X", s_iif_head);
-    }
-    else
-    {
-        struct io_input_filter *list = s_iif_head;
-        while(1)
-        {
-            if(list->next == RT_NULL)
-            {
-                list->next = iif;
-                LOG_I("iif list:  0x%08X -> 0x%08X", list, list->next);
-                break;
-            }
-            list = list->next;
-        }
-    }
-
-    // Create A Timer Task
-    if(s_iif_timer == RT_NULL)
-    {
-        s_iif_timer = rt_timer_create("iif task", _iif_period_task,
-                            RT_NULL, IIF_PERIOD, RT_TIMER_FLAG_PERIODIC | RT_TIMER_FLAG_SOFT_TIMER);
-        if(s_iif_timer != RT_NULL)
-        {
-            rt_timer_start(s_iif_timer);
-            LOG_I("iif task start.");
-        }
-        else
-        {
-            LOG_E("iif task timer create failed!");
-            return RT_ERROR;
-        }
-    }
-
-    return RT_EOK;
+    iif_list_append(&iif, iif_new);
+    return 0;
 }
 
-uint8_t iif_read(struct io_input_filter *iif)
+int iif_read_pin(rt_base_t pin)
 {
-    RT_ASSERT(iif != RT_NULL);
-
-    return iif->pin_status;
+    iif_t *note = iif.next;
+    while(note)
+    {
+        if(note->pin_id == pin)
+        {
+            return note->pin_status;
+        }
+        note = note->next;
+    }
+    return -1;
 }
 
-static void io_input_filter_poll(void)
+static void iif_handle(void *parameter)
 {
-    struct io_input_filter *list = RT_NULL;
-
-    for(list = s_iif_head; list != NULL; list = list->next)
+    iif_t *note = iif.next;
+    while(note)
     {
-        // When IO is low
-        if(rt_pin_read(list->pin_id) == PIN_LOW)
+        if(rt_pin_read(note->pin_id) == PIN_LOW)
         {
-            if(list->pin_status == PIN_HIGH)
+            if(note->pin_status == PIN_HIGH)
             {
-                if(list->filter_counts > 0)
+                if(note->filter_counts > 0)
                 {
-                    list->filter_counts--;
+                    note->filter_counts--;
                 }
                 else
                 {
-                    list->pin_status = PIN_LOW;
-                    LOG_I("iif 0x%08X, pin status changed: %d", list, list->pin_status);
+                    note->pin_status = PIN_LOW;
+                    IIF_DEBUG("pin %d changed to %d\n", note->pin_id, note->pin_status);
                 }
             }
             else
             {
-                list->filter_counts = 0;
+                note->filter_counts = 0;
             }
         }
         else
         {
-            if(list->pin_status == PIN_LOW)
+            if(note->pin_status == PIN_LOW)
             {
-                if(list->filter_counts < IIF_TIMES)
+                if(note->filter_counts < IIF_TIMES)
                 {
-                    list->filter_counts++;
+                    note->filter_counts++;
                 }
                 else
                 {
-                    list->pin_status = PIN_HIGH;
-                    LOG_I("iif 0x%08X, pin status changed: %d", list, list->pin_status);
+                    note->pin_status = PIN_HIGH;
+                    IIF_DEBUG("pin %d changed to %d\n", note->pin_id, note->pin_status);
                 }
             }
             else
             {
-                list->filter_counts = IIF_TIMES;
+                note->filter_counts = IIF_TIMES;
             }
         }
-
-        LOG_D("iif 0x%08X, filter_counts %d, pin_status %d", list, list->filter_counts, list->pin_status);
+        note = note->next;
     }
 }
 
-static void _iif_period_task(void *parameter)
+static void iif_list_append(iif_t *l, iif_t *n)
 {
-    io_input_filter_poll();
-}
+    iif_t *node = l;
 
+    while (node->next)
+    {
+        node = node->next;
+    }
+    node->next = n;
+    n->next = NULL;
+}

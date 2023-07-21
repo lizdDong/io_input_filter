@@ -12,31 +12,11 @@
 
 #include <rtthread.h>
 #include <rtdevice.h>
-#include <drv_common.h>
-
-/* Input Filter Times */
-#ifndef IIF_TIMES
-#define IIF_TIMES     10
-#endif
-
-/* Input Filter Period */
-#ifndef IIF_PERIOD
-#define IIF_PERIOD    5
-#endif
+#include "drv_common.h"
 
 
-struct io_input_filter
-{
-    uint8_t pin_id;
-    uint8_t pin_status;
-    uint8_t filter_counts;
-    struct io_input_filter *next;
-};
-typedef struct io_input_filter *io_input_filter_t;
-
-
-io_input_filter_t iif_create(rt_base_t pin);
-rt_err_t iif_init(io_input_filter_t iif, rt_base_t pin);
-uint8_t iif_read(struct io_input_filter *iif);
+void iif_init(void);
+int iif_add_pin(rt_base_t pin);
+int iif_read_pin(rt_base_t pin);
 
 #endif /* PACKAGES_IO_INPUT_FILTER_H_ */
