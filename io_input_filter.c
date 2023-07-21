@@ -8,11 +8,8 @@
  * 2022-07-04     lizd       the first version
  */
 
-#include "io_input_filter.h"
-
-#define DBG_TAG "iif"
-#define DBG_LVL DBG_LOG
-#include <rtdbg.h>
+#include <rtthread.h>
+#include <rtdevice.h>
 
 /* Input Filter Times */
 #ifndef IIF_TIMES
